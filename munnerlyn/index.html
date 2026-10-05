@@ -80,6 +80,50 @@
             margin: 6px 0;
         }
 
+        .formulas {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .formulas h3 {
+            margin-top: 0;
+        }
+
+        .formulas dt {
+            font-weight: bold;
+            margin-top: 12px;
+        }
+
+        .formulas dd {
+            margin: 2px 0 0;
+        }
+
+        .formula {
+            display: block;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 16px;
+        }
+
+        .worked {
+            display: block;
+            font-size: 14px;
+            color: #0066cc;
+        }
+
+        .worked:empty {
+            display: none;
+        }
+
+        .formulas .note {
+            margin-bottom: 0;
+            font-size: 13px;
+            color: #555;
+        }
+
         .result .limit-note {
             font-size: 14px;
             color: #555;
@@ -183,7 +227,7 @@
                 grid-template-columns: 1fr 2fr !important;
             }
 
-            .buttons {
+            .buttons, .formulas, .how-link {
                 display: none;
             }
 
@@ -253,7 +297,8 @@
         <p><strong>Percent Tissue Altered (PTA):</strong> <span id="pta">--</span></p>
         <p><strong>Residual Corneal Thickness:</strong> <span id="residual-thickness">--</span></p>
         <p><strong>Maximum Correctable SE:</strong> <span id="max-correction">--</span></p>
-        <p class="limit-note">Limits: residual thickness &ge; 300 µm and PTA &lt; 40%.</p>
+        <p class="limit-note">Limits: residual thickness &ge; 300 µm and PTA &lt; 40%.
+            <a href="#how-calculated" class="how-link">How is this calculated?</a></p>
     </div>
 
     <div class="buttons">
@@ -261,6 +306,46 @@
         <button id="reset-button" type="button">Reset</button>
     </div>
 
+
+    <section class="formulas" id="how-calculated">
+        <h3>How it's calculated</h3>
+        <dl>
+            <dt>Spherical equivalent (SE)</dt>
+            <dd>
+                <span class="formula">SE = Sphere + Cylinder &divide; 2</span>
+                <span class="worked" id="worked-se"></span>
+            </dd>
+
+            <dt>Ablation depth (Munnerlyn's formula)</dt>
+            <dd>
+                <span class="formula">Depth (µm) = |SE| (D) &times; Optical zone&sup2; (mm) &divide; 3</span>
+                <span class="worked" id="worked-depth"></span>
+            </dd>
+
+            <dt>Percent tissue altered (PTA)</dt>
+            <dd>
+                <span class="formula">PTA = (Flap + Ablation depth) &divide; Pachymetry &times; 100</span>
+                <span class="worked" id="worked-pta"></span>
+            </dd>
+
+            <dt>Residual corneal thickness</dt>
+            <dd>
+                <span class="formula">Residual = Pachymetry &minus; Flap &minus; Ablation depth</span>
+                <span class="worked" id="worked-residual"></span>
+            </dd>
+
+            <dt>Maximum correctable SE</dt>
+            <dd>
+                The largest myopic correction that keeps residual thickness &ge; 300 µm and PTA &lt; 40%:
+                <span class="formula">Max SE = 3 &times; min(Pachymetry &minus; Flap &minus; 300, 0.4 &times; Pachymetry &minus; Flap) &divide; Optical zone&sup2;</span>
+                <span class="worked" id="worked-max"></span>
+            </dd>
+        </dl>
+        <p class="note">
+            Your numbers appear in blue as you type. Valid for myopic treatments only.
+            Results are rounded in the safer direction (ablation up, residual thickness down, PTA up).
+        </p>
+    </section>
 
     <p class="reference">
         Ablation depth: Munnerlyn CR, et al. <em>J Cataract Refract Surg.</em> 1988;14:46&ndash;52.
@@ -292,6 +377,13 @@
         const residualThicknessOutput = document.getElementById('residual-thickness');
         const maxCorrectionOutput = document.getElementById('max-correction');
         const hyperopiaMessage = document.getElementById('hyperopia-message');
+        const worked = {
+            se: document.getElementById('worked-se'),
+            depth: document.getElementById('worked-depth'),
+            pta: document.getElementById('worked-pta'),
+            residual: document.getElementById('worked-residual'),
+            max: document.getElementById('worked-max'),
+        };
 
         const printButton = document.getElementById('print-button');
         const resetButton = document.getElementById('reset-button');
@@ -335,6 +427,13 @@
             setOutput(ptaOutput, '--');
             setOutput(residualThicknessOutput, '--');
             setOutput(maxCorrectionOutput, '--');
+            Object.values(worked).forEach(line => { line.textContent = ''; });
+
+            // Worked examples use the \u2212 minus sign to match the formulas above
+            const num = (value, digits) => (digits === undefined ? String(value) : value.toFixed(digits)).replace('-', '\u2212');
+            if (hasRefraction) {
+                worked.se.textContent = `${num(sphere ?? 0)} + (${num(cyl ?? 0)}) \u00f7 2 = ${num(sphericalEquivalent, 2)} D`;
+            }
 
             if (hasRefraction && !isMyopic) return;
 
@@ -343,6 +442,8 @@
             if (isMyopic && opticalZone > 0) {
                 const ablationDepth = Math.ceil(Math.abs(sphericalEquivalent) * opticalZone ** 2 / 3 - EPSILON);
                 setOutput(ablationDepthOutput, ablationDepth + ' µm');
+                worked.depth.textContent = `${num(Math.abs(sphericalEquivalent), 2)} \u00d7 ${num(opticalZone)}\u00b2 \u00f7 3 = ` +
+                    `${num(Math.abs(sphericalEquivalent) * opticalZone ** 2 / 3, 1)} \u2192 ${ablationDepth} µm`;
 
                 if (hasCornea) {
                     const pta = Math.ceil((ablationDepth + flapThickness) / pachymetry * 1000 - EPSILON) / 10;
@@ -354,6 +455,9 @@
                     setOutput(residualThicknessOutput, residualThickness + ' µm', residualThickness >= MIN_RESIDUAL_THICKNESS
                         ? { pass: true, text: '\u2265 ' + MIN_RESIDUAL_THICKNESS + ' µm' }
                         : { pass: false, text: 'below ' + MIN_RESIDUAL_THICKNESS + ' µm' });
+                    worked.pta.textContent = `(${num(flapThickness)} + ${ablationDepth}) \u00f7 ${num(pachymetry)} \u00d7 100 = ` +
+                        `${num((ablationDepth + flapThickness) / pachymetry * 100, 2)} \u2192 ${pta.toFixed(1)}%`;
+                    worked.residual.textContent = `${num(pachymetry)} \u2212 ${num(flapThickness)} \u2212 ${ablationDepth} = ${residualThickness} µm`;
                 }
             }
 
@@ -363,12 +467,16 @@
                 const byPta = pachymetry * MAX_PTA / 100 - flapThickness;
                 const maxAblation = Math.min(byResidual, byPta);
                 const limitedBy = byResidual <= byPta ? 'residual thickness' : 'PTA';
+                const oneDecimal = value => num(Math.round(value * 10) / 10);
+                worked.max.textContent = `3 \u00d7 min(${oneDecimal(byResidual)}, ${oneDecimal(byPta)}) \u00f7 ${num(opticalZone)}\u00b2 = `;
 
                 if (maxAblation <= 0) {
                     setOutput(maxCorrectionOutput, 'None', { pass: false, text: 'flap alone exceeds ' + limitedBy + ' limit' });
+                    worked.max.textContent += 'none (flap alone exceeds the limit)';
                 } else {
                     const maxSE = Math.floor(maxAblation * 3 / opticalZone ** 2 * 100 + EPSILON) / 100;
                     setOutput(maxCorrectionOutput, formatDiopters(-maxSE) + ' (limited by ' + limitedBy + ')');
+                    worked.max.textContent += `${num(maxAblation * 3 / opticalZone ** 2, 3)} \u2192 ${num(-maxSE, 2)} D`;
                 }
             }
         }
