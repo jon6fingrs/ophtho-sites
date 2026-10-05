@@ -117,6 +117,76 @@
         .pending {
             color: #555;
         }
+        .section-title {
+            grid-column: 1 / -1;
+            margin: 10px 0 0;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #ccc;
+            font-size: 16px;
+            color: #555;
+        }
+        .breakdown {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+        }
+        .breakdown th, .breakdown td {
+            padding: 4px 6px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        .breakdown td:last-child, .breakdown th:last-child {
+            text-align: right;
+        }
+        .breakdown .total td {
+            font-weight: bold;
+            border-bottom: none;
+        }
+        .interpretation {
+            font-size: 16px;
+            margin-top: 0;
+        }
+        .key {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .key h3 {
+            margin-top: 0;
+        }
+        .key h4 {
+            margin-bottom: 5px;
+        }
+        .table-scroll {
+            overflow-x: auto;
+        }
+        .score-key {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .score-key th, .score-key td {
+            border: 1px solid #ccc;
+            padding: 4px;
+            text-align: center;
+        }
+        .score-key th[scope="row"] {
+            text-align: left;
+        }
+        .score-key td.selected {
+            background-color: #fff3c4;
+            font-weight: bold;
+            outline: 2px solid #e6a700;
+            outline-offset: -2px;
+        }
+        .key .note {
+            margin-bottom: 0;
+            font-size: 13px;
+            color: #555;
+        }
         .small-buttons {
             flex: 1;
         }
@@ -219,7 +289,7 @@
             }
 
             /* Remove unnecessary elements */
-            .buttons, .popup, .overlay {
+            .buttons, .popup, .overlay, .key, .how-link {
                 display: none;
             }
 
@@ -252,17 +322,7 @@
     <p id="print-date" class="print-only"></p>
 
     <div class="form-container">
-        <label for="patient-name">Patient's Name:</label>
-        <input type="text" id="patient-name" autocomplete="off" placeholder="Enter patient's name">
-
-        <label for="surgeon-name">Surgeon's Name:</label>
-        <input type="text" id="surgeon-name" autocomplete="off" placeholder="Enter surgeon's name">
-
-        <label for="eye-laterality">Eye Laterality:</label>
-        <select id="eye-laterality">
-            <option value="right">Right</option>
-            <option value="left">Left</option>
-        </select>
+        <h2 class="section-title">Risk Factors</h2>
 
         <label for="age">Age:</label>
         <input type="number" id="age" data-typical-min="15" data-typical-max="90" data-field-name="Age" data-unit="years" min="0" step="1" placeholder="Enter age">
@@ -290,11 +350,35 @@
 
         <label for="topography">Corneal Topography: <button type="button" class="info-button" onclick="openPopup(event)" aria-label="Explain topography categories">&#9432;</button></label>
         <select id="topography">
-            <option value="normal">Normal</option>
-            <option value="abnormal">Abnormal - Asymmetric Bowtie</option>
-            <option value="inferior">Inferior Steep/Skewed Radial Axis</option>
-            <option value="forme-fruste">Abnormal (Keratoconus, Pellucid, etc.)</option>
+            <option value="normal">Normal / symmetric bowtie</option>
+            <option value="abnormal">Asymmetric bowtie</option>
+            <option value="inferior">Inferior steepening / skewed radial axis</option>
+            <option value="forme-fruste">Abnormal (forme fruste KC, keratoconus, PMD)</option>
         </select>
+
+        <h2 class="section-title">Patient (for printout)</h2>
+
+        <label for="patient-name">Patient's Name:</label>
+        <input type="text" id="patient-name" autocomplete="off" placeholder="Enter patient's name">
+
+        <label for="surgeon-name">Surgeon's Name:</label>
+        <input type="text" id="surgeon-name" autocomplete="off" placeholder="Enter surgeon's name">
+
+        <label for="eye-laterality">Eye Laterality:</label>
+        <select id="eye-laterality">
+            <option value="right">Right</option>
+            <option value="left">Left</option>
+        </select>
+    </div>
+
+    <div id="range-warnings" class="range-warnings"></div>
+
+    <div class="result" id="result">
+        <h3>Randleman Risk Score</h3>
+        <div id="result-body">
+            <p>Enter age, refraction, CCT, and RSB to see the risk score.</p>
+        </div>
+        <p><a href="#how-scored" class="how-link">How is this scored?</a></p>
     </div>
 
     <div class="buttons">
@@ -302,16 +386,73 @@
         <button type="button" class="small-buttons" onclick="resetForm()">Reset</button>
     </div>
 
-    <div id="range-warnings" class="range-warnings"></div>
-
-    <div class="result" id="result">
-        <h3>
-            Randleman Risk Score <button type="button" class="info-button" onclick="openRiskPopup(event)" aria-label="Explain risk score">&#9432;</button>
-        </h3>
-        <div id="result-body">
-            <p>Enter age, refraction, CCT, and RSB to see the risk score.</p>
+    <section class="key" id="how-scored">
+        <h3>How it's scored</h3>
+        <p>Each risk factor earns 0&ndash;4 points, and the total sets the risk category. Your patient's values are highlighted.</p>
+        <div class="table-scroll">
+            <table class="score-key">
+                <thead>
+                    <tr><th scope="col">Points</th><th scope="col">4</th><th scope="col">3</th><th scope="col">2</th><th scope="col">1</th><th scope="col">0</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">Topography</th>
+                        <td data-factor="topography" data-points="4">Abnormal</td>
+                        <td data-factor="topography" data-points="3">Inferior steepening / SRAX</td>
+                        <td>&mdash;</td>
+                        <td data-factor="topography" data-points="1">Asymmetric bowtie</td>
+                        <td data-factor="topography" data-points="0">Normal / symmetric bowtie</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">RSB (µm)</th>
+                        <td data-factor="rsb" data-points="4">&lt; 240</td>
+                        <td data-factor="rsb" data-points="3">240&ndash;259</td>
+                        <td data-factor="rsb" data-points="2">260&ndash;279</td>
+                        <td data-factor="rsb" data-points="1">280&ndash;299</td>
+                        <td data-factor="rsb" data-points="0">&ge; 300</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Age (years)</th>
+                        <td>&mdash;</td>
+                        <td data-factor="age" data-points="3">18&ndash;21</td>
+                        <td data-factor="age" data-points="2">22&ndash;25</td>
+                        <td data-factor="age" data-points="1">26&ndash;29</td>
+                        <td data-factor="age" data-points="0">&ge; 30</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">CCT (µm)</th>
+                        <td data-factor="cct" data-points="4">&lt; 450</td>
+                        <td data-factor="cct" data-points="3">450&ndash;480</td>
+                        <td data-factor="cct" data-points="2">481&ndash;510</td>
+                        <td>&mdash;</td>
+                        <td data-factor="cct" data-points="0">&gt; 510</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">MRSE (D)</th>
+                        <td data-factor="mrse" data-points="4">&lt; &minus;14</td>
+                        <td data-factor="mrse" data-points="3">&minus;12 to &minus;14</td>
+                        <td data-factor="mrse" data-points="2">&minus;10 to &minus;11.99</td>
+                        <td data-factor="mrse" data-points="1">&minus;8 to &minus;9.99</td>
+                        <td data-factor="mrse" data-points="0">&gt; &minus;8</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-    </div>
+
+        <h4>Risk categories</h4>
+        <ul>
+            <li><strong class="risk-low">Low risk (0&ndash;2 points):</strong> <span id="interp-low">Low likelihood of corneal ectasia. LASIK may proceed with standard precautions.</span></li>
+            <li><strong class="risk-moderate">Moderate risk (3 points):</strong> <span id="interp-moderate">Intermediate likelihood of corneal ectasia. Additional evaluation and alternative surgical options should be considered.</span></li>
+            <li><strong class="risk-high">High risk (4+ points):</strong> <span id="interp-high">Significant likelihood of corneal ectasia. LASIK is generally not recommended.</span></li>
+        </ul>
+
+        <p class="note">
+            RSB is calculated as CCT &minus; flap &minus; ablation depth (Munnerlyn: |SE| &times; optical zone&sup2; &divide; 3)
+            unless you enter a measured value. The score was derived from patients 18 and older, and it does not
+            include percent tissue altered (PTA): ectasia can occur in eyes with low scores, so also check PTA with the
+            <a href="https://munnerlynformula.com" target="_blank" rel="noopener">Munnerlyn calculator</a>.
+        </p>
+    </section>
 
     <p class="reference">
         Randleman JB, et al. Risk assessment for ectasia after corneal refractive surgery.
@@ -326,62 +467,30 @@
         </p>
     </footer>
 
-    <!-- Risk Score Popup -->
-    <div class="overlay" id="risk-overlay"></div>
-    <div class="popup" id="risk-popup" role="dialog" aria-modal="true" aria-labelledby="risk-popup-title">
-        <button type="button" class="close-btn" onclick="closeRiskPopup()">Close</button>
-        <h3 id="risk-popup-title">Randleman Risk Score Explanation</h3>
-        <ul>
-            <li><strong>Low Risk (0–2 points):</strong> Low likelihood of corneal ectasia. LASIK may proceed with standard precautions.</li>
-            <li><strong>Moderate Risk (3 points):</strong> Intermediate likelihood of corneal ectasia. Additional evaluation and alternative surgical options should be considered.</li>
-            <li><strong>High Risk (4 or more points):</strong> Significant likelihood of corneal ectasia. LASIK is generally not recommended.</li>
-        </ul>
-    </div>
-
     <!-- Popup Content -->
     <div class="overlay" id="overlay"></div>
     <div class="popup" id="popup" role="dialog" aria-modal="true" aria-labelledby="popup-title">
         <button type="button" class="close-btn" onclick="closePopup()">Close</button>
         <h3 id="popup-title">Corneal Topography Options</h3>
         <ul>
-            <li><strong>Normal/Symmetrical:</strong> Includes round, oval, or symmetric bowtie patterns.</li>
-            <li><strong>Abnormal - Asymmetric Bowtie:</strong>
+            <li><strong>Normal / symmetric bowtie (0 points):</strong> Includes round, oval, or symmetric bowtie patterns.</li>
+            <li><strong>Asymmetric bowtie (1 point):</strong>
                 <ul>
                     <li>Asymmetric steepening in any direction less than 1.0 diopter (D).</li>
                     <li>No skewed radial axis.</li>
                 </ul>
             </li>
-            <li><strong>Inferior Steep/Skewed Radial Axis:</strong>
+            <li><strong>Inferior steepening / skewed radial axis (3 points):</strong>
                 <ul>
                     <li>Significant skewed radial axis with or without inferior steepening.</li>
                     <li>One diopter or more of inferior steepening in some areas but an I-S value of less than 1.4.</li>
                 </ul>
             </li>
-            <li><strong>Abnormal:</strong> Includes keratoconus, pellucid marginal corneal degeneration, or forme fruste keratoconus with an I-S value of 1.4 or more.</li>
+            <li><strong>Abnormal (4 points):</strong> Includes keratoconus, pellucid marginal corneal degeneration, or forme fruste keratoconus with an I-S value of 1.4 or more.</li>
         </ul>
     </div>
 
     <script>
-        function openRiskPopup(event) {
-            if (event) {
-                event.preventDefault(); // Prevent default behavior
-                event.stopPropagation(); // Stop propagation
-            }
-            document.getElementById('risk-popup').style.display = 'block';
-            document.getElementById('risk-overlay').style.display = 'block';
-            document.querySelector('#risk-popup .close-btn').focus();
-        }
-
-        function closeRiskPopup() {
-            document.getElementById('risk-popup').style.display = 'none';
-            document.getElementById('risk-overlay').style.display = 'none';
-        }
-
-        // Close the popup when clicking outside of it
-        document.getElementById('risk-overlay').addEventListener('click', (event) => {
-            closeRiskPopup();
-        });
-
         function openPopup(event) {
             if (event) {
                 event.preventDefault(); // Prevent the default action (e.g., opening the dropdown on mobile)
@@ -440,11 +549,10 @@
         updatePrintDate();
         window.addEventListener('beforeprint', updatePrintDate);
 
-        // Close either popup with the Escape key
+        // Close the popup with the Escape key
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closePopup();
-                closeRiskPopup();
             }
         });
 
@@ -526,6 +634,7 @@
             if (mrse === null) missing.push('Sphere / Cylinder');
             if (cct === null) missing.push('CCT');
             if (rsb === null) missing.push('RSB (or Optical Zone + Flap Thickness to calculate it)');
+            if (missing.length) highlightKey(null);
             if (missing.length === 4) {
                 resultBody.innerHTML = PROMPT_HTML;
                 return;
@@ -563,26 +672,49 @@
             const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
 
             let risk;
-            if (totalScore >= 4) risk = { label: 'High Risk', className: 'risk-high' };
-            else if (totalScore === 3) risk = { label: 'Moderate Risk', className: 'risk-moderate' };
-            else risk = { label: 'Low Risk', className: 'risk-low' };
+            if (totalScore >= 4) risk = { label: 'High Risk (4+ points)', className: 'risk-high', interp: 'interp-high' };
+            else if (totalScore === 3) risk = { label: 'Moderate Risk (3 points)', className: 'risk-moderate', interp: 'interp-moderate' };
+            else risk = { label: 'Low Risk (0\u20132 points)', className: 'risk-low', interp: 'interp-low' };
 
             const ageNote = age < 18
                 ? '<p class="error">Note: the Randleman score was derived from patients aged 18 and older.</p>'
                 : '';
 
+            const topographySelect = document.getElementById('topography');
+            const topographyLabel = topographySelect.options[topographySelect.selectedIndex].text;
+            const points = n => n === 1 ? '1 point' : n + ' points';
+            const minus = value => String(value).replace('-', '\u2212');
+            const rows = [
+                ['Age', age + ' years', scores.age],
+                ['Spherical equivalent', minus(mrse.toFixed(2)) + ' D', scores.mrse],
+                ['RSB', minus(rsb) + ' µm' + (rsbEnteredManually ? ' (entered)' : ' (calculated)'), scores.rsb],
+                ['CCT', cct + ' µm', scores.cct],
+                ['Topography', topographyLabel, scores.topography],
+            ];
+
             resultBody.innerHTML = `
-                <ul>
-                    <li>Age: ${scores.age} points</li>
-                    <li>Spherical Equivalent: ${scores.mrse} points</li>
-                    <li>RSB: ${scores.rsb} points</li>
-                    <li>CCT: ${scores.cct} points</li>
-                    <li>Topography: ${scores.topography} points</li>
-                </ul>
-                <p><strong>Total Score: ${totalScore} points</strong></p>
+                <table class="breakdown">
+                    <thead><tr><th>Factor</th><th>Value</th><th>Points</th></tr></thead>
+                    <tbody>
+                        ${rows.map(([name, value, score]) => `<tr><td>${name}</td><td>${value}</td><td>${score}</td></tr>`).join('')}
+                        <tr class="total"><td colspan="2">Total</td><td>${points(totalScore)}</td></tr>
+                    </tbody>
+                </table>
                 <p class="${risk.className}"><strong>${risk.label}</strong></p>
+                <p class="interpretation">${document.getElementById(risk.interp).textContent}</p>
                 ${ageNote}
             `;
+            highlightKey(scores);
+        }
+
+        // Highlights the patient's cell in each row of the scoring key (or clears it when scores is null)
+        function highlightKey(scores) {
+            document.querySelectorAll('.score-key td.selected').forEach(cell => cell.classList.remove('selected'));
+            if (!scores) return;
+            Object.entries(scores).forEach(([factor, score]) => {
+                const cell = document.querySelector(`.score-key td[data-factor="${factor}"][data-points="${score}"]`);
+                if (cell) cell.classList.add('selected');
+            });
         }
     </script>
 </body>
