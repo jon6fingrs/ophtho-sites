@@ -31,7 +31,8 @@
 
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 20px auto;
+            padding: 0 16px;
             max-width: 600px;
         }
         h1 {
@@ -113,8 +114,8 @@
             font-size: 16px;
             cursor: pointer;
         }
-        .calc-button {
-            width: 100%;
+        .pending {
+            color: #555;
         }
         .small-buttons {
             flex: 1;
@@ -222,7 +223,7 @@
                 display: none;
             }
 
-            .calc-button, .info-button {
+            .info-button {
                 display: none;
             }
 
@@ -296,8 +297,6 @@
         </select>
     </div>
 
-    <button type="button" class="calc-button" onclick="calculateRisk()">Calculate Randleman Risk Score</button>
-
     <div class="buttons">
         <button type="button" class="small-buttons" onclick="window.print()">Print</button>
         <button type="button" class="small-buttons" onclick="resetForm()">Reset</button>
@@ -310,7 +309,7 @@
             Randleman Risk Score <button type="button" class="info-button" onclick="openRiskPopup(event)" aria-label="Explain risk score">&#9432;</button>
         </h3>
         <div id="result-body">
-            <p>Enter all required fields and click the button to calculate the risk score.</p>
+            <p>Enter age, refraction, CCT, and RSB to see the risk score.</p>
         </div>
     </div>
 
@@ -449,14 +448,12 @@
             }
         });
 
-        const PROMPT_HTML = '<p>Enter all required fields and click the button to calculate the risk score.</p>';
+        const PROMPT_HTML = '<p>Enter age, refraction, CCT, and RSB to see the risk score.</p>';
         const resultBody = document.getElementById('result-body');
         const rsbInput = document.getElementById('rsb');
 
         // True once the user types their own RSB (e.g. measured by OCT); stops auto-calculation overwriting it.
         let rsbEnteredManually = false;
-        // True while the result box shows a score for the current inputs.
-        let resultIsCurrent = false;
 
         // Returns the numeric value of a field, or null if it is blank/invalid.
         function readNumber(id) {
@@ -473,8 +470,7 @@
                 }
             });
             rsbEnteredManually = false;
-            resultIsCurrent = false;
-            resultBody.innerHTML = PROMPT_HTML;
+            calculateRisk();
             checkRanges();
         }
 
@@ -497,7 +493,8 @@
             if (!rsbEnteredManually) {
                 if (sphericalEquivalent !== null && opticalZone > 0 && flapSize !== null && cct > 0) {
                     const ablationDepth = Math.abs(sphericalEquivalent) * (opticalZone ** 2) / 3;
-                    rsbInput.value = (cct - flapSize - ablationDepth).toFixed(2);
+                    // Rounded down (conservative), matching the Munnerlyn calculator
+                    rsbInput.value = Math.floor(cct - flapSize - ablationDepth + 1e-9);
                 } else {
                     rsbInput.value = '';
                 }
@@ -514,13 +511,8 @@
             if (!rsbEnteredManually) calculateValues();
         });
 
-        // Don't leave a score on screen (or on a printout) that no longer matches the inputs
-        document.querySelector('.form-container').addEventListener('input', (event) => {
-            if (!resultIsCurrent) return;
-            if (event.target.id === 'patient-name' || event.target.id === 'surgeon-name') return;
-            resultIsCurrent = false;
-            resultBody.innerHTML = '<p class="error">Inputs changed. Click the button to recalculate the risk score.</p>';
-        });
+        // Recalculate as the user types (field listeners above run first, filling in SE and RSB)
+        document.querySelector('.form-container').addEventListener('input', calculateRisk);
 
         function calculateRisk() {
             const age = readNumber('age');
@@ -534,9 +526,12 @@
             if (mrse === null) missing.push('Sphere / Cylinder');
             if (cct === null) missing.push('CCT');
             if (rsb === null) missing.push('RSB (or Optical Zone + Flap Thickness to calculate it)');
+            if (missing.length === 4) {
+                resultBody.innerHTML = PROMPT_HTML;
+                return;
+            }
             if (missing.length) {
-                resultIsCurrent = false;
-                resultBody.innerHTML = '<p class="error">Missing required fields:</p><ul>' +
+                resultBody.innerHTML = '<p class="pending">Still needed:</p><ul class="pending">' +
                     missing.map(name => `<li>${name}</li>`).join('') + '</ul>';
                 return;
             }
@@ -576,7 +571,6 @@
                 ? '<p class="error">Note: the Randleman score was derived from patients aged 18 and older.</p>'
                 : '';
 
-            resultIsCurrent = true;
             resultBody.innerHTML = `
                 <ul>
                     <li>Age: ${scores.age} points</li>
