@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Randleman Criteria for Ectasia Risk</title>
+    <style>
+        footer {
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+            background-color: #f9f9f9;
+        }
+
+        footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+            color: #004080;
+        }
+
+
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            align-self: center;
+        }
+        input, select {
+            padding: 5px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            background-color: white;
+            border: 2px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 400px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        .popup .close-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            float: right;
+            border-radius: 3px;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .calc-button {
+            width: 100%;
+        }
+        .small-buttons {
+            flex: 1;
+        }
+
+        div.select-wrapper {
+            text-decoration: underline;
+            font-weight: bold;
+            margin-bottom: 5px;
+            align-self: center;
+            cursor: pointer;
+        }
+        div.select-wrapper:hover {
+            text-decoration: underline;
+            font-weight: bold;
+            margin-bottom: 5px;
+            align-self: center;
+        }
+
+        .clickable-label {
+            text-decoration: underline;
+            font-weight: bold;
+            cursor: pointer; /* Ensures pointer cursor */
+            display: inline-block; /* Restricts the clickable area to the label's dimensions */
+            margin: 0; /* Removes extra space around the label */
+            padding: 0; /* Ensures no extra hover area */
+            line-height: 1.2; /* Matches the height of the text for consistency */
+        }
+
+        .clickable-label:hover {
+            text-decoration: underline;
+            color: darkblue; /* Optional: Add a hover color for better feedback */
+        }
+
+        /* Print Styles */
+        @media print {
+            /* Set the page margins to ensure everything fits within the printable area */
+            @page {
+                size: auto; /* Automatically adjust to content size */
+                margin: 10mm; /* Adjust margins as needed */
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                font-size: 12px; /* Reduce font size for compactness */
+                line-height: 1.4; /* Adjust line spacing for better fit */
+            }
+
+            .form-container {
+                display: grid;
+                grid-template-columns: 1fr 2fr; /* Ensure consistent layout for form fields */
+                gap: 5px; /* Reduce gap between items */
+            }
+
+            .result {
+                margin-top: 20px;
+                padding: 20px;
+                border: 2px solid #ccc;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+                font-size: 18px;
+                line-height: 1.6;
+            }
+
+            h1 {
+                font-size: 24px; /* Reduce title size */
+                margin-bottom: 10px; /* Adjust spacing */
+            }
+
+            .result h3 {
+                font-size: 24px; /* Make the text larger */
+                margin-top: 10px; /* Reduce space above */
+                margin-bottom: 10px; /* Reduce space below */
+                line-height: 1.2; /* Adjust line spacing for compactness */
+                text-align: left; /* Optional: Center the text */
+            }
+
+            /* Remove unnecessary elements */
+            .buttons, .popup, .overlay {
+                display: none;
+            }
+
+            .calc-button {
+                display: none;
+            }
+
+            /* Ensure no overflowing content */
+            * {
+                box-sizing: border-box;
+            }
+
+            /* Scale content to fit within one page */
+            html, body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            /* Adjust form field width for compact layout */
+            input, select {
+                font-size: 14px;
+                padding: 3px;
+                width: 100%; /* Ensure fields do not overflow */
+            }
+
+            footer {
+                display: none; /* Hide footer during printing */
+            }
+
+        }
+    </style>
+    <script defer data-domain="ectasiarisk.com" src="https://plausible.katz.vision/js/script.js"></script>
+</head>
+<body>
+    <h1>Randleman Criteria for Ectasia Risk</h1>
+
+    <div class="form-container">
+        <label for="patient-name">Patient's Name:</label>
+        <input type="text" id="patient-name" placeholder="Enter patient's name">
+
+        <label for="surgeon-name">Surgeon's Name:</label>
+        <input type="text" id="surgeon-name" placeholder="Enter surgeon's name">
+
+        <label for="eye-laterality">Eye Laterality:</label>
+        <select id="eye-laterality">
+            <option value="right">Right</option>
+            <option value="left">Left</option>
+        </select>
+
+        <label for="age">Age:</label>
+        <input type="number" id="age" placeholder="Enter age">
+
+        <label for="sphere">Preoperative Sphere (D):</label>
+        <input type="number" id="sphere" step="0.25" placeholder="Enter sphere">
+
+        <label for="cylinder">Preoperative Cylinder (D):</label>
+        <input type="number" id="cylinder" step="0.25" placeholder="Enter cylinder">
+
+        <label for="spherical-equivalent">Spherical Equivalent (D):</label>
+        <input type="number" id="spherical-equivalent">
+
+        <label for="optical-zone">Optical Zone (mm):</label>
+        <input type="number" id="optical-zone" step="0.1" placeholder="Enter optical zone size">
+
+        <label for="flap-size">Flap Thickness (µm):</label>
+        <input type="number" id="flap-size" placeholder="Enter flap thickness">
+
+        <label for="cct">Central Corneal Thickness (CCT, µm):</label>
+        <input type="number" id="cct" placeholder="Enter central corneal thickness">
+
+        <label for="rsb">Residual Stromal Bed Thickness (RSB, µm):</label>
+        <input type="number" id="rsb">
+
+        <label for="topography" class="clickable-label" onclick="openPopup(event)">Corneal Topography:</label>
+        <select id="topography">
+            <option value="normal">Normal</option>
+            <option value="abnormal">Abnormal - Asymmetric Bowtie</option>
+            <option value="inferior">Inferior Steep/Skewed Radial Axis</option>
+            <option value="forme-fruste">Abnormal (Keratoconus, Pellucid, etc.)</option>
+        </select>
+    </div>
+
+    <button class="calc-button" onclick="calculateRisk()">Calculate Randleman Risk Score</button>
+
+    <div class="buttons">
+        <button class="small-buttons" onclick="window.print()">Print</button>
+        <button class="small-buttons" onclick="resetForm()">Reset</button>
+    </div>
+
+    <div class="result" id="result">
+        <h3>
+            <span class="clickable-label" onclick="openRiskPopup(event)">Randleman Risk Score</span>
+        </h3>
+        <p>Enter all required fields and click the button to calculate the risk score.</p>
+    </div>
+
+    <footer>
+        <p>
+            Made by <strong>Jonathan Katz, MD</strong>. Visit my site:
+            <a href="https://jonathankatzmd.com" target="_blank" rel="noopener">jonathankatzmd.com</a>
+        </p>
+    </footer>
+
+    <!-- Risk Score Popup -->
+    <div class="overlay" id="risk-overlay"></div>
+    <div class="popup" id="risk-popup">
+        <button class="close-btn" onclick="closeRiskPopup()">Close</button>
+        <h3>Randleman Risk Score Explanation</h3>
+        <ul>
+            <li><strong>Low Risk (0–2 points):</strong> Low likelihood of corneal ectasia. LASIK may proceed with standard precautions.</li>
+            <li><strong>Moderate Risk (3 points):</strong> Intermediate likelihood of corneal ectasia. Additional evaluation and alternative surgical options should be considered.</li>
+            <li><strong>High Risk (4 or more points):</strong> Significant likelihood of corneal ectasia. LASIK is generally not recommended.</li>
+        </ul>
+    </div>
+
+    <!-- Popup Content -->
+    <div class="overlay" id="overlay"></div>
+    <div class="popup" id="popup">
+        <button class="close-btn" onclick="closePopup()">Close</button>
+        <h3>Corneal Topography Options</h3>
+        <ul>
+            <li><strong>Normal/Symmetrical:</strong> Includes round, oval, or symmetric bowtie patterns.</li>
+            <li><strong>Abnormal - Asymmetric Bowtie:</strong>
+                <ul>
+                    <li>Asymmetric steepening in any direction less than 1.0 diopter (D).</li>
+                    <li>No skewed radial axis.</li>
+                </ul>
+            </li>
+            <li><strong>Inferior Steep/Skewed Radial Axis:</strong>
+                <ul>
+                    <li>Significant skewed radial axis with or without inferior steepening.</li>
+                    <li>One diopter or more of inferior steepening in some areas but an I-S value of less than 1.4.</li>
+                </ul>
+            </li>
+            <li><strong>Abnormal:</strong> Includes keratoconus, pellucid marginal corneal degeneration, or forme fruste keratoconus with an I-S value of 1.4 or more.</li>
+        </ul>
+    </div>
+
+    <script>
+        function openRiskPopup(event) {
+            if (event) {
+                event.preventDefault(); // Prevent default behavior
+                event.stopPropagation(); // Stop propagation
+            }
+            document.getElementById('risk-popup').style.display = 'block';
+            document.getElementById('risk-overlay').style.display = 'block';
+        }
+
+        function closeRiskPopup() {
+            document.getElementById('risk-popup').style.display = 'none';
+            document.getElementById('risk-overlay').style.display = 'none';
+        }
+
+        // Close the popup when clicking outside of it
+        document.getElementById('risk-overlay').addEventListener('click', (event) => {
+            closeRiskPopup();
+        });
+
+        function openPopup(event) {
+            if (event) {
+                event.preventDefault(); // Prevent the default action (e.g., opening the dropdown on mobile)
+                event.stopPropagation(); // Stop the event from propagating to other elements
+            }
+            document.getElementById('popup').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('popup').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Close the popup when clicking outside of it
+        document.getElementById('overlay').addEventListener('click', (event) => {
+            closePopup();
+        });
+
+        function resetForm() {
+            document.querySelectorAll('input, select').forEach(field => {
+                if (field.type === 'select-one') {
+                    field.selectedIndex = 0;
+                } else {
+                    field.value = '';
+                }
+            });
+            document.getElementById('result').innerHTML = `
+                <h3>
+                    <span class="clickable-label">Randleman Risk Score</span>
+                </h3>
+                <p>Enter all required fields and click the button to calculate the risk score.</p>
+            `;
+            attachRiskPopupHandler(); // Reattach the handler after resetting
+        }
+
+        function calculateValues() {
+            const sphere = parseFloat(document.getElementById('sphere').value) || 0;
+            const cylinder = parseFloat(document.getElementById('cylinder').value) || 0;
+            const opticalZone = parseFloat(document.getElementById('optical-zone').value) || 0;
+            const flapSize = parseFloat(document.getElementById('flap-size').value) || 0;
+            const cct = parseFloat(document.getElementById('cct').value) || 0;
+
+            // Calculate Spherical Equivalent
+            if (!isNaN(sphere) && !isNaN(cylinder)) {
+                const sphericalEquivalent = sphere + cylinder / 2;
+                document.getElementById('spherical-equivalent').value = sphericalEquivalent.toFixed(2);
+
+                // Calculate RSB
+                if (opticalZone > 0 && flapSize > 0 && cct > 0) {
+                    const ablationDepth = Math.abs(sphericalEquivalent) * (opticalZone ** 2) / 3;
+                    const rsb = cct - flapSize - ablationDepth;
+                    document.getElementById('rsb').value = rsb.toFixed(2);
+                }
+            }
+        }
+
+        document.querySelectorAll('#sphere, #cylinder, #optical-zone, #flap-size, #cct').forEach(field => {
+            field.addEventListener('input', calculateValues);
+        });
+
+        function attachRiskPopupHandler() {
+            const riskScoreLabel = document.querySelector('#result h3 span.clickable-label');
+            if (riskScoreLabel) {
+                riskScoreLabel.onclick = openRiskPopup; // Reattach the click handler
+            }
+        }
+
+        function calculateRisk() {
+            const age = parseInt(document.getElementById('age').value) || 0;
+            const rsb = parseFloat(document.getElementById('rsb').value) || 0;
+            const cct = parseFloat(document.getElementById('cct').value) || 0;
+            const mrse = parseFloat(document.getElementById('spherical-equivalent').value) || 0;
+            const topography = document.getElementById('topography').value;
+
+            let scores = { age: 0, mrse: 0, rsb: 0, cct: 0, topography: 0 };
+
+            if (topography === "forme-fruste") scores.topography = 4;
+            else if (topography === "inferior") scores.topography = 3;
+            else if (topography === "abnormal") scores.topography = 1;
+
+            if (rsb < 240) scores.rsb = 4;
+            else if (rsb < 260) scores.rsb = 3;
+            else if (rsb < 280) scores.rsb = 2;
+            else if (rsb < 300) scores.rsb = 1;
+
+            if (age >= 18 && age <= 21) scores.age = 3;
+            else if (age >= 22 && age <= 25) scores.age = 2;
+            else if (age >= 26 && age <= 29) scores.age = 1;
+
+            if (cct < 450) scores.cct = 4;
+            else if (cct <= 480) scores.cct = 3;
+            else if (cct <= 510) scores.cct = 2;
+
+            if (mrse < -14) scores.sphere = 4;
+            else if (mrse <= -12) scores.sphere = 3;
+            else if (mrse <= -10) scores.sphere = 2;
+            else if (mrse <= -8) scores.sphere = 1;
+
+            const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
+
+            document.getElementById('result').innerHTML = `
+                <h3>
+                    <span class="clickable-label">Randleman Risk Score</span>
+                </h3>
+                <ul>
+                    <li>Age: ${scores.age} points</li>
+                    <li>Spherical Equivalent: ${scores.mrse} points</li>
+                    <li>RSB: ${scores.rsb} points</li>
+                    <li>CCT: ${scores.cct} points</li>
+                    <li>Topography: ${scores.topography} points</li>
+                </ul>
+                <p><strong>Total Score: ${totalScore} points</strong></p>
+            `;
+            attachRiskPopupHandler(); // Reattach the handler after updating the content
+        }
+    </script>
+</body>
+</html>

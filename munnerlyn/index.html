@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Munnerlyn's Formula Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            align-self: center;
+        }
+
+        input, select {
+            padding: 5px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .warning {
+            color: red;
+            font-weight: bold;
+            font-size: 12px;
+            margin-left: 10px;
+            display: inline-block;
+        }
+
+        #sphere-warning {
+            display: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+
+        footer {
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+            background-color: #f9f9f9;
+        }
+
+        footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+            color: #004080;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 600px) {
+            .form-container {
+                grid-template-columns: 1fr;
+            }
+
+            label {
+                margin-bottom: 5px;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            @page {
+                margin: 10mm;
+            }
+
+            body {
+                font-size: 12px;
+                line-height: 1.4;
+                margin: 0;
+            }
+
+            .form-container {
+                grid-template-columns: 1fr 2fr !important;
+            }
+
+            .buttons {
+                display: none;
+            }
+
+            .result h3 {
+                font-size: 20px;
+                margin: 10px 0;
+            }
+
+            footer {
+                display: none;
+            }
+        }
+    </style>
+    <script defer data-domain="munnerlynformula.com" src="https://plausible.katz.vision/js/script.js"></script>
+</head>
+<body>
+    <h1>Munnerlyn's Formula Calculator</h1>
+
+    <div class="form-container">
+        <label for="patient-name">Patient Name:</label>
+        <input type="text" id="patient-name" placeholder="Enter patient name">
+
+        <label for="surgeon-name">Surgeon Name:</label>
+        <input type="text" id="surgeon-name" placeholder="Enter surgeon name">
+
+        <label for="eye">Eye:</label>
+        <select id="eye">
+            <option value="right">Right</option>
+            <option value="left">Left</option>
+        </select>
+
+        <label for="sphere">Sphere (D):</label>
+        <div style="display: flex; align-items: center;">
+            <input type="number" id="sphere" placeholder="Enter sphere value">
+            <span id="sphere-warning" class="warning">Valid for myopic ablation only</span>
+        </div>
+
+        <label for="cyl">Cylinder (D):</label>
+        <input type="number" id="cyl" placeholder="Enter cylinder value">
+
+        <label for="pachymetry">Pachymetry (microns):</label>
+        <input type="number" id="pachymetry" placeholder="Enter pachymetry value">
+
+        <label for="flap-thickness">Flap Thickness (microns):</label>
+        <input type="number" id="flap-thickness" placeholder="Enter flap thickness value">
+
+        <label for="optical-zone">Optical Zone (mm):</label>
+        <input type="number" step="0.01" id="optical-zone" placeholder="Enter optical zone value">
+    </div>
+
+    <div class="result">
+        <h3>Results:</h3>
+        <p><strong>Ablation Depth (microns):</strong> <span id="ablation-depth">--</span></p>
+        <p><strong>Percent Tissue Alteration (PTA):</strong> <span id="pta">--</span></p>
+        <p><strong>Residual Corneal Thickness (microns):</strong> <span id="residual-thickness">--</span></p>
+    </div>
+
+    <div class="buttons">
+        <button id="print-button" type="button">Print</button>
+        <button id="reset-button" type="button">Reset</button>
+    </div>
+
+
+    <footer>
+        <p>
+            Made by <strong>Jonathan Katz, MD</strong>. Visit my site:
+            <a href="https://jonathankatzmd.com" target="_blank" rel="noopener">jonathankatzmd.com</a>
+        </p>
+    </footer>
+
+    <script>
+        const sphereInput = document.getElementById('sphere');
+        const cylInput = document.getElementById('cyl');
+        const pachymetryInput = document.getElementById('pachymetry');
+        const flapThicknessInput = document.getElementById('flap-thickness');
+        const opticalZoneInput = document.getElementById('optical-zone');
+
+        const ablationDepthOutput = document.getElementById('ablation-depth');
+        const ptaOutput = document.getElementById('pta');
+        const residualThicknessOutput = document.getElementById('residual-thickness');
+        const sphereWarning = document.getElementById('sphere-warning');
+
+        const printButton = document.getElementById('print-button');
+        const resetButton = document.getElementById('reset-button');
+
+        function calculateMunnerlyns() {
+            const sphere = parseFloat(sphereInput.value) || 0;
+            const cyl = parseFloat(cylInput.value) || 0;
+            const pachymetry = parseFloat(pachymetryInput.value) || 0;
+            const flapThickness = parseFloat(flapThicknessInput.value) || 0;
+            const opticalZone = parseFloat(opticalZoneInput.value) || 0;
+
+            const sphericalEquivalent = sphere + cyl / 2;
+
+            if (sphericalEquivalent >= 0) {
+                sphereWarning.style.display = 'inline';
+                ablationDepthOutput.textContent = '--';
+                ptaOutput.textContent = '--';
+                residualThicknessOutput.textContent = '--';
+                return;
+            } else {
+                sphereWarning.style.display = 'none';
+            }
+
+            if (opticalZone) {
+                const absoluteSE = Math.abs(sphericalEquivalent);
+                const ablationDepth = (absoluteSE * Math.pow(opticalZone, 2)) / 3;
+                ablationDepthOutput.textContent = ablationDepth.toFixed(2);
+
+                if (pachymetry && flapThickness) {
+                    const pta = ((ablationDepth + flapThickness) / pachymetry) * 100;
+                    const residualThickness = pachymetry - (ablationDepth + flapThickness);
+
+                    ptaOutput.textContent = pta.toFixed(2) + '%';
+                    if (pta > 40) {
+                        ptaOutput.classList.add('warning');
+                        ptaOutput.textContent += ' - Warning: PTA exceeds safe limit!';
+                    } else {
+                        ptaOutput.classList.remove('warning');
+                    }
+
+                    residualThicknessOutput.textContent = residualThickness.toFixed(2);
+                    if (residualThickness < 300) {
+                        residualThicknessOutput.classList.add('warning');
+                        residualThicknessOutput.textContent += ' - Warning: Residual thickness too low!';
+                    } else {
+                        residualThicknessOutput.classList.remove('warning');
+                    }
+                } else {
+                    ptaOutput.textContent = '--';
+                    residualThicknessOutput.textContent = '--';
+                }
+            } else {
+                ablationDepthOutput.textContent = '--';
+                ptaOutput.textContent = '--';
+                residualThicknessOutput.textContent = '--';
+            }
+        }
+
+        [sphereInput, cylInput, pachymetryInput, flapThicknessInput, opticalZoneInput].forEach(input => {
+            input.addEventListener('input', calculateMunnerlyns);
+        });
+
+        printButton.addEventListener('click', () => {
+            window.print();
+        });
+
+        resetButton.addEventListener('click', () => {
+            document.querySelectorAll('input, select').forEach(field => {
+                if (field.type === 'select-one') {
+                    field.selectedIndex = 0;
+                } else {
+                    field.value = '';
+                }
+            });
+            ablationDepthOutput.textContent = '--';
+            ptaOutput.textContent = '--';
+            residualThicknessOutput.textContent = '--';
+            sphereWarning.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
