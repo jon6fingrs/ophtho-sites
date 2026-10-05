@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Munnerlyn's Formula Calculator</title>
+    <meta name="description" content="Munnerlyn formula calculator for LASIK and PRK: ablation depth, percent tissue altered (PTA), and residual thickness.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M2 16C8 7 24 7 30 16C24 25 8 25 2 16Z' fill='white' stroke='%230066cc' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%230066cc'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='black'/%3E%3C/svg%3E">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -108,8 +110,36 @@
             }
         }
 
+        input.unusual {
+            border: 2px solid #e65100;
+        }
+
+        .range-warnings {
+            color: #e65100;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .range-warnings:empty {
+            display: none;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        .reference {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #555;
+        }
+
         /* Print Styles */
         @media print {
+            .print-only {
+                display: block;
+            }
+
             @page {
                 margin: 10mm;
             }
@@ -142,13 +172,14 @@
 </head>
 <body>
     <h1>Munnerlyn's Formula Calculator</h1>
+    <p id="print-date" class="print-only"></p>
 
     <div class="form-container">
         <label for="patient-name">Patient Name:</label>
-        <input type="text" id="patient-name" placeholder="Enter patient name">
+        <input type="text" id="patient-name" autocomplete="off" placeholder="Enter patient name">
 
         <label for="surgeon-name">Surgeon Name:</label>
-        <input type="text" id="surgeon-name" placeholder="Enter surgeon name">
+        <input type="text" id="surgeon-name" autocomplete="off" placeholder="Enter surgeon name">
 
         <label for="eye">Eye:</label>
         <select id="eye">
@@ -158,25 +189,28 @@
 
         <label for="sphere">Sphere (D):</label>
         <div style="display: flex; align-items: center;">
-            <input type="number" step="any" id="sphere" placeholder="Enter sphere value">
+            <input type="number" step="any" id="sphere" data-typical-min="-20" data-typical-max="10" data-field-name="Sphere" data-unit="D" placeholder="Enter sphere value">
             <span id="sphere-warning" class="warning">Valid for myopic ablation only</span>
         </div>
 
         <label for="cyl">Cylinder (D):</label>
-        <input type="number" step="any" id="cyl" placeholder="Enter cylinder value">
+        <input type="number" step="any" id="cyl" data-typical-min="-8" data-typical-max="8" data-field-name="Cylinder" data-unit="D" placeholder="Enter cylinder value">
 
         <label for="pachymetry">Pachymetry (microns):</label>
-        <input type="number" step="any" min="0" id="pachymetry" placeholder="Enter pachymetry value">
+        <input type="number" step="any" min="0" id="pachymetry" data-typical-min="350" data-typical-max="750" data-field-name="Pachymetry" data-unit="µm" placeholder="Enter pachymetry value">
 
         <label for="flap-thickness">Flap Thickness (microns):</label>
-        <input type="number" step="any" min="0" id="flap-thickness" placeholder="Enter flap thickness value">
+        <input type="number" step="any" min="0" id="flap-thickness" data-typical-min="0" data-typical-max="200" data-field-name="Flap thickness" data-unit="µm" placeholder="Enter flap thickness value">
 
         <label for="optical-zone">Optical Zone (mm):</label>
-        <input type="number" step="any" min="0" id="optical-zone" placeholder="Enter optical zone value">
+        <input type="number" step="any" min="0" id="optical-zone" data-typical-min="4" data-typical-max="8" data-field-name="Optical zone" data-unit="mm" placeholder="Enter optical zone value">
     </div>
+
+    <div id="range-warnings" class="range-warnings"></div>
 
     <div class="result">
         <h3>Results:</h3>
+        <p><strong>Spherical Equivalent (D):</strong> <span id="spherical-equivalent">--</span></p>
         <p><strong>Ablation Depth (microns):</strong> <span id="ablation-depth">--</span></p>
         <p><strong>Percent Tissue Alteration (PTA):</strong> <span id="pta">--</span></p>
         <p><strong>Residual Corneal Thickness (microns):</strong> <span id="residual-thickness">--</span></p>
@@ -187,6 +221,12 @@
         <button id="reset-button" type="button">Reset</button>
     </div>
 
+
+    <p class="reference">
+        Ablation depth: Munnerlyn CR, et al. <em>J Cataract Refract Surg.</em> 1988;14:46&ndash;52.
+        PTA: Santhiago MR, et al. <em>Am J Ophthalmol.</em> 2014;158:87&ndash;95.
+        For clinical decision support only; verify results and use clinical judgment.
+    </p>
 
     <footer>
         <p>
@@ -205,6 +245,7 @@
         const ablationDepthOutput = document.getElementById('ablation-depth');
         const ptaOutput = document.getElementById('pta');
         const residualThicknessOutput = document.getElementById('residual-thickness');
+        const sphericalEquivalentOutput = document.getElementById('spherical-equivalent');
         const sphereWarning = document.getElementById('sphere-warning');
 
         const printButton = document.getElementById('print-button');
@@ -243,11 +284,13 @@
             // Nothing to calculate until a refraction has been entered.
             if (sphere === null && cyl === null) {
                 sphereWarning.style.display = 'none';
+                setOutput(sphericalEquivalentOutput, '--');
                 clearOutputs();
                 return;
             }
 
             const sphericalEquivalent = (sphere ?? 0) + (cyl ?? 0) / 2;
+            setOutput(sphericalEquivalentOutput, (sphericalEquivalent > 0 ? '+' : '') + sphericalEquivalent.toFixed(2));
 
             if (sphericalEquivalent >= 0) {
                 sphereWarning.style.display = 'inline';
@@ -282,6 +325,44 @@
             input.addEventListener('input', calculateMunnerlyns);
         });
 
+        // Flags values outside the usual clinical range (likely typos) without blocking the calculation.
+        function checkRanges() {
+            const messages = [];
+            document.querySelectorAll('input[data-typical-min]').forEach(input => {
+                const value = parseFloat(input.value);
+                const min = parseFloat(input.dataset.typicalMin);
+                const max = parseFloat(input.dataset.typicalMax);
+                const unusual = Number.isFinite(value) && (value < min || value > max);
+                input.classList.toggle('unusual', unusual);
+                if (unusual) {
+                    const unit = input.dataset.unit;
+                    messages.push(`${input.dataset.fieldName} of ${value} ${unit} is outside the usual range ` +
+                        `(${min} to ${max} ${unit}). Please double-check.`);
+                }
+            });
+            const container = document.getElementById('range-warnings');
+            container.textContent = '';
+            if (messages.length) {
+                const list = document.createElement('ul');
+                messages.forEach(message => {
+                    const item = document.createElement('li');
+                    item.textContent = message;
+                    list.appendChild(item);
+                });
+                container.appendChild(list);
+            }
+        }
+
+        document.querySelector('.form-container').addEventListener('input', checkRanges);
+
+        // Date shown on printouts
+        function updatePrintDate() {
+            document.getElementById('print-date').textContent = 'Date: ' +
+                new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        updatePrintDate();
+        window.addEventListener('beforeprint', updatePrintDate);
+
         printButton.addEventListener('click', () => {
             window.print();
         });
@@ -295,7 +376,9 @@
                 }
             });
             clearOutputs();
+            setOutput(sphericalEquivalentOutput, '--');
             sphereWarning.style.display = 'none';
+            checkRanges();
         });
     </script>
 </body>

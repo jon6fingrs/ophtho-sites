@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Randleman Criteria for Ectasia Risk</title>
+    <meta name="description" content="Randleman Ectasia Risk Score System calculator for refractive surgery screening: age, MRSE, residual stromal bed, CCT, and topography.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M2 16C8 7 24 7 30 16C24 25 8 25 2 16Z' fill='white' stroke='%230066cc' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%230066cc'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='black'/%3E%3C/svg%3E">
     <style>
         footer {
             margin-top: 20px;
@@ -129,23 +131,50 @@
         .risk-moderate { color: #e65100; }
         .risk-high { color: #c62828; }
 
-        .clickable-label {
-            text-decoration: underline;
-            font-weight: bold;
-            cursor: pointer; /* Ensures pointer cursor */
-            display: inline-block; /* Restricts the clickable area to the label's dimensions */
-            margin: 0; /* Removes extra space around the label */
-            padding: 0; /* Ensures no extra hover area */
-            line-height: 1.2; /* Matches the height of the text for consistency */
+        .info-button {
+            background: none;
+            border: none;
+            padding: 0 2px;
+            font-size: 1.1em;
+            line-height: 1;
+            color: #0066cc;
+            cursor: pointer;
         }
 
-        .clickable-label:hover {
-            text-decoration: underline;
-            color: darkblue; /* Optional: Add a hover color for better feedback */
+        .info-button:hover {
+            color: #004080;
+        }
+
+        input.unusual {
+            border: 2px solid #e65100;
+        }
+
+        .range-warnings {
+            color: #e65100;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .range-warnings:empty {
+            display: none;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        .reference {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #555;
         }
 
         /* Print Styles */
         @media print {
+            .print-only {
+                display: block;
+            }
+
             /* Set the page margins to ensure everything fits within the printable area */
             @page {
                 size: auto; /* Automatically adjust to content size */
@@ -193,7 +222,7 @@
                 display: none;
             }
 
-            .calc-button {
+            .calc-button, .info-button {
                 display: none;
             }
 
@@ -219,13 +248,14 @@
 </head>
 <body>
     <h1>Randleman Criteria for Ectasia Risk</h1>
+    <p id="print-date" class="print-only"></p>
 
     <div class="form-container">
         <label for="patient-name">Patient's Name:</label>
-        <input type="text" id="patient-name" placeholder="Enter patient's name">
+        <input type="text" id="patient-name" autocomplete="off" placeholder="Enter patient's name">
 
         <label for="surgeon-name">Surgeon's Name:</label>
-        <input type="text" id="surgeon-name" placeholder="Enter surgeon's name">
+        <input type="text" id="surgeon-name" autocomplete="off" placeholder="Enter surgeon's name">
 
         <label for="eye-laterality">Eye Laterality:</label>
         <select id="eye-laterality">
@@ -234,30 +264,30 @@
         </select>
 
         <label for="age">Age:</label>
-        <input type="number" id="age" min="0" step="1" placeholder="Enter age">
+        <input type="number" id="age" data-typical-min="15" data-typical-max="90" data-field-name="Age" data-unit="years" min="0" step="1" placeholder="Enter age">
 
         <label for="sphere">Preoperative Sphere (D):</label>
-        <input type="number" id="sphere" step="any" placeholder="Enter sphere">
+        <input type="number" id="sphere" data-typical-min="-20" data-typical-max="10" data-field-name="Sphere" data-unit="D" step="any" placeholder="Enter sphere">
 
         <label for="cylinder">Preoperative Cylinder (D):</label>
-        <input type="number" id="cylinder" step="any" placeholder="Enter cylinder">
+        <input type="number" id="cylinder" data-typical-min="-8" data-typical-max="8" data-field-name="Cylinder" data-unit="D" step="any" placeholder="Enter cylinder">
 
         <label for="spherical-equivalent">Spherical Equivalent (D):</label>
         <input type="number" id="spherical-equivalent" readonly tabindex="-1" placeholder="Calculated from sphere and cylinder">
 
         <label for="optical-zone">Optical Zone (mm):</label>
-        <input type="number" id="optical-zone" step="any" min="0" placeholder="Enter optical zone size">
+        <input type="number" id="optical-zone" data-typical-min="4" data-typical-max="8" data-field-name="Optical zone" data-unit="mm" step="any" min="0" placeholder="Enter optical zone size">
 
         <label for="flap-size">Flap Thickness (µm):</label>
-        <input type="number" id="flap-size" step="any" min="0" placeholder="Enter flap thickness">
+        <input type="number" id="flap-size" data-typical-min="0" data-typical-max="200" data-field-name="Flap thickness" data-unit="µm" step="any" min="0" placeholder="Enter flap thickness">
 
         <label for="cct">Central Corneal Thickness (CCT, µm):</label>
-        <input type="number" id="cct" step="any" min="0" placeholder="Enter central corneal thickness">
+        <input type="number" id="cct" data-typical-min="350" data-typical-max="750" data-field-name="CCT" data-unit="µm" step="any" min="0" placeholder="Enter central corneal thickness">
 
         <label for="rsb">Residual Stromal Bed Thickness (RSB, µm):</label>
-        <input type="number" id="rsb" step="any" placeholder="Calculated, or enter measured value">
+        <input type="number" id="rsb" data-typical-min="150" data-typical-max="650" data-field-name="RSB" data-unit="µm" step="any" placeholder="Calculated, or enter measured value">
 
-        <label for="topography" class="clickable-label" onclick="openPopup(event)">Corneal Topography:</label>
+        <label for="topography">Corneal Topography: <button type="button" class="info-button" onclick="openPopup(event)" aria-label="Explain topography categories">&#9432;</button></label>
         <select id="topography">
             <option value="normal">Normal</option>
             <option value="abnormal">Abnormal - Asymmetric Bowtie</option>
@@ -273,14 +303,22 @@
         <button type="button" class="small-buttons" onclick="resetForm()">Reset</button>
     </div>
 
+    <div id="range-warnings" class="range-warnings"></div>
+
     <div class="result" id="result">
         <h3>
-            <span class="clickable-label" onclick="openRiskPopup(event)">Randleman Risk Score</span>
+            Randleman Risk Score <button type="button" class="info-button" onclick="openRiskPopup(event)" aria-label="Explain risk score">&#9432;</button>
         </h3>
         <div id="result-body">
             <p>Enter all required fields and click the button to calculate the risk score.</p>
         </div>
     </div>
+
+    <p class="reference">
+        Randleman JB, et al. Risk assessment for ectasia after corneal refractive surgery.
+        <em>Ophthalmology.</em> 2008;115:37&ndash;50.
+        For clinical decision support only; verify results and use clinical judgment.
+    </p>
 
     <footer>
         <p>
@@ -291,9 +329,9 @@
 
     <!-- Risk Score Popup -->
     <div class="overlay" id="risk-overlay"></div>
-    <div class="popup" id="risk-popup">
+    <div class="popup" id="risk-popup" role="dialog" aria-modal="true" aria-labelledby="risk-popup-title">
         <button type="button" class="close-btn" onclick="closeRiskPopup()">Close</button>
-        <h3>Randleman Risk Score Explanation</h3>
+        <h3 id="risk-popup-title">Randleman Risk Score Explanation</h3>
         <ul>
             <li><strong>Low Risk (0–2 points):</strong> Low likelihood of corneal ectasia. LASIK may proceed with standard precautions.</li>
             <li><strong>Moderate Risk (3 points):</strong> Intermediate likelihood of corneal ectasia. Additional evaluation and alternative surgical options should be considered.</li>
@@ -303,9 +341,9 @@
 
     <!-- Popup Content -->
     <div class="overlay" id="overlay"></div>
-    <div class="popup" id="popup">
+    <div class="popup" id="popup" role="dialog" aria-modal="true" aria-labelledby="popup-title">
         <button type="button" class="close-btn" onclick="closePopup()">Close</button>
-        <h3>Corneal Topography Options</h3>
+        <h3 id="popup-title">Corneal Topography Options</h3>
         <ul>
             <li><strong>Normal/Symmetrical:</strong> Includes round, oval, or symmetric bowtie patterns.</li>
             <li><strong>Abnormal - Asymmetric Bowtie:</strong>
@@ -332,6 +370,7 @@
             }
             document.getElementById('risk-popup').style.display = 'block';
             document.getElementById('risk-overlay').style.display = 'block';
+            document.querySelector('#risk-popup .close-btn').focus();
         }
 
         function closeRiskPopup() {
@@ -351,6 +390,7 @@
             }
             document.getElementById('popup').style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
+            document.querySelector('#popup .close-btn').focus();
         }
 
         function closePopup() {
@@ -362,6 +402,44 @@
         document.getElementById('overlay').addEventListener('click', (event) => {
             closePopup();
         });
+
+        // Flags values outside the usual clinical range (likely typos) without blocking the calculation.
+        function checkRanges() {
+            const messages = [];
+            document.querySelectorAll('input[data-typical-min]').forEach(input => {
+                const value = parseFloat(input.value);
+                const min = parseFloat(input.dataset.typicalMin);
+                const max = parseFloat(input.dataset.typicalMax);
+                const unusual = Number.isFinite(value) && (value < min || value > max);
+                input.classList.toggle('unusual', unusual);
+                if (unusual) {
+                    const unit = input.dataset.unit;
+                    messages.push(`${input.dataset.fieldName} of ${value} ${unit} is outside the usual range ` +
+                        `(${min} to ${max} ${unit}). Please double-check.`);
+                }
+            });
+            const container = document.getElementById('range-warnings');
+            container.textContent = '';
+            if (messages.length) {
+                const list = document.createElement('ul');
+                messages.forEach(message => {
+                    const item = document.createElement('li');
+                    item.textContent = message;
+                    list.appendChild(item);
+                });
+                container.appendChild(list);
+            }
+        }
+
+        document.querySelector('.form-container').addEventListener('input', checkRanges);
+
+        // Date shown on printouts
+        function updatePrintDate() {
+            document.getElementById('print-date').textContent = 'Date: ' +
+                new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        updatePrintDate();
+        window.addEventListener('beforeprint', updatePrintDate);
 
         // Close either popup with the Escape key
         document.addEventListener('keydown', (event) => {
@@ -397,6 +475,7 @@
             rsbEnteredManually = false;
             resultIsCurrent = false;
             resultBody.innerHTML = PROMPT_HTML;
+            checkRanges();
         }
 
         function calculateValues() {
@@ -423,6 +502,7 @@
                     rsbInput.value = '';
                 }
             }
+            checkRanges();
         }
 
         document.querySelectorAll('#sphere, #cylinder, #optical-zone, #flap-size, #cct').forEach(field => {
