@@ -158,21 +158,21 @@
 
         <label for="sphere">Sphere (D):</label>
         <div style="display: flex; align-items: center;">
-            <input type="number" id="sphere" placeholder="Enter sphere value">
+            <input type="number" step="any" id="sphere" placeholder="Enter sphere value">
             <span id="sphere-warning" class="warning">Valid for myopic ablation only</span>
         </div>
 
         <label for="cyl">Cylinder (D):</label>
-        <input type="number" id="cyl" placeholder="Enter cylinder value">
+        <input type="number" step="any" id="cyl" placeholder="Enter cylinder value">
 
         <label for="pachymetry">Pachymetry (microns):</label>
-        <input type="number" id="pachymetry" placeholder="Enter pachymetry value">
+        <input type="number" step="any" min="0" id="pachymetry" placeholder="Enter pachymetry value">
 
         <label for="flap-thickness">Flap Thickness (microns):</label>
-        <input type="number" id="flap-thickness" placeholder="Enter flap thickness value">
+        <input type="number" step="any" min="0" id="flap-thickness" placeholder="Enter flap thickness value">
 
         <label for="optical-zone">Optical Zone (mm):</label>
-        <input type="number" step="0.01" id="optical-zone" placeholder="Enter optical zone value">
+        <input type="number" step="any" min="0" id="optical-zone" placeholder="Enter optical zone value">
     </div>
 
     <div class="result">
@@ -210,57 +210,71 @@
         const printButton = document.getElementById('print-button');
         const resetButton = document.getElementById('reset-button');
 
-        function calculateMunnerlyns() {
-            const sphere = parseFloat(sphereInput.value) || 0;
-            const cyl = parseFloat(cylInput.value) || 0;
-            const pachymetry = parseFloat(pachymetryInput.value) || 0;
-            const flapThickness = parseFloat(flapThicknessInput.value) || 0;
-            const opticalZone = parseFloat(opticalZoneInput.value) || 0;
+        // Returns the numeric value of an input, or null if it is blank/invalid.
+        function readNumber(input) {
+            const value = parseFloat(input.value);
+            return Number.isFinite(value) ? value : null;
+        }
 
-            const sphericalEquivalent = sphere + cyl / 2;
+        // Writes a result value, optionally followed by a red warning message.
+        function setOutput(output, text, warningText) {
+            output.textContent = text;
+            if (warningText) {
+                const warning = document.createElement('span');
+                warning.className = 'warning';
+                warning.textContent = warningText;
+                output.appendChild(warning);
+            }
+        }
+
+        function clearOutputs() {
+            setOutput(ablationDepthOutput, '--');
+            setOutput(ptaOutput, '--');
+            setOutput(residualThicknessOutput, '--');
+        }
+
+        function calculateMunnerlyns() {
+            const sphere = readNumber(sphereInput);
+            const cyl = readNumber(cylInput);
+            const pachymetry = readNumber(pachymetryInput);
+            const flapThickness = readNumber(flapThicknessInput);
+            const opticalZone = readNumber(opticalZoneInput);
+
+            // Nothing to calculate until a refraction has been entered.
+            if (sphere === null && cyl === null) {
+                sphereWarning.style.display = 'none';
+                clearOutputs();
+                return;
+            }
+
+            const sphericalEquivalent = (sphere ?? 0) + (cyl ?? 0) / 2;
 
             if (sphericalEquivalent >= 0) {
                 sphereWarning.style.display = 'inline';
-                ablationDepthOutput.textContent = '--';
-                ptaOutput.textContent = '--';
-                residualThicknessOutput.textContent = '--';
+                clearOutputs();
                 return;
-            } else {
-                sphereWarning.style.display = 'none';
+            }
+            sphereWarning.style.display = 'none';
+
+            if (!(opticalZone > 0)) {
+                clearOutputs();
+                return;
             }
 
-            if (opticalZone) {
-                const absoluteSE = Math.abs(sphericalEquivalent);
-                const ablationDepth = (absoluteSE * Math.pow(opticalZone, 2)) / 3;
-                ablationDepthOutput.textContent = ablationDepth.toFixed(2);
+            const ablationDepth = (Math.abs(sphericalEquivalent) * Math.pow(opticalZone, 2)) / 3;
+            setOutput(ablationDepthOutput, ablationDepth.toFixed(2));
 
-                if (pachymetry && flapThickness) {
-                    const pta = ((ablationDepth + flapThickness) / pachymetry) * 100;
-                    const residualThickness = pachymetry - (ablationDepth + flapThickness);
+            if (pachymetry > 0 && flapThickness !== null) {
+                const pta = ((ablationDepth + flapThickness) / pachymetry) * 100;
+                const residualThickness = pachymetry - (ablationDepth + flapThickness);
 
-                    ptaOutput.textContent = pta.toFixed(2) + '%';
-                    if (pta > 40) {
-                        ptaOutput.classList.add('warning');
-                        ptaOutput.textContent += ' - Warning: PTA exceeds safe limit!';
-                    } else {
-                        ptaOutput.classList.remove('warning');
-                    }
-
-                    residualThicknessOutput.textContent = residualThickness.toFixed(2);
-                    if (residualThickness < 300) {
-                        residualThicknessOutput.classList.add('warning');
-                        residualThicknessOutput.textContent += ' - Warning: Residual thickness too low!';
-                    } else {
-                        residualThicknessOutput.classList.remove('warning');
-                    }
-                } else {
-                    ptaOutput.textContent = '--';
-                    residualThicknessOutput.textContent = '--';
-                }
+                setOutput(ptaOutput, pta.toFixed(2) + '%',
+                    pta >= 40 ? 'Warning: PTA \u2265 40% (ectasia risk)' : null);
+                setOutput(residualThicknessOutput, residualThickness.toFixed(2),
+                    residualThickness < 300 ? 'Warning: Residual thickness too low!' : null);
             } else {
-                ablationDepthOutput.textContent = '--';
-                ptaOutput.textContent = '--';
-                residualThicknessOutput.textContent = '--';
+                setOutput(ptaOutput, '--');
+                setOutput(residualThicknessOutput, '--');
             }
         }
 
@@ -280,9 +294,7 @@
                     field.value = '';
                 }
             });
-            ablationDepthOutput.textContent = '--';
-            ptaOutput.textContent = '--';
-            residualThicknessOutput.textContent = '--';
+            clearOutputs();
             sphereWarning.style.display = 'none';
         });
     </script>
